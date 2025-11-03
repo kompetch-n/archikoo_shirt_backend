@@ -143,6 +143,17 @@ async def search_by_name(name: str):
         c.pop("_id", None)
     return customers
 
+@app.get("/summary-sizes")
+async def summary_sizes():
+    customers = list(collection.find())
+    summary = {}
+    for customer in customers:
+        for item in customer.get("items", []):
+            size = item.get("size", "").strip()  # ใช้ตรง ๆ
+            quantity = item.get("quantity", 0)
+            summary[size] = summary.get(size, 0) + quantity
+    return summary
+
 
 
 # ===== รันเซิร์ฟเวอร์ =====

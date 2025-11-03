@@ -129,8 +129,12 @@ async def get_all():
 # 6. ค้นหา Order(s) ด้วยชื่อ
 @app.get("/search-by-name")
 async def search_by_name(name: str):
-    # ใช้ regex เพื่อค้นหา case-insensitive
-    customers = list(collection.find({"fullName": {"$regex": name, "$options": "i"}}))
+    print("Searching name:", name)
+    query = {"fullName": {"$regex": name, "$options": "i"}}
+    print("Query:", query)
+    customers = list(collection.find(query))
+    print("Found:", customers)
+    
     if not customers:
         raise HTTPException(404, "ไม่พบชื่อที่ค้นหา")
     
@@ -138,6 +142,7 @@ async def search_by_name(name: str):
         c["id"] = str(c["_id"])
         c.pop("_id", None)
     return customers
+
 
 
 # ===== รันเซิร์ฟเวอร์ =====

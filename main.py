@@ -4,9 +4,11 @@ from pydantic import BaseModel, Field, validator
 from typing import List, Optional
 from datetime import datetime
 from pymongo import MongoClient
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import random
 import string
+
 
 # ===== MongoDB Atlas Connection =====
 MONGO_URI = "mongodb+srv://kompetchn:1234@cluster0.3fttexy.mongodb.net/?retryWrites=true&w=majority"
@@ -25,7 +27,7 @@ def generate_order_id():
 
 # ===== Pydantic Models =====
 class ShirtItem(BaseModel):
-    size: str = Field(..., pattern="^(S|M|L|XL|XXL|XXXL)$")
+    size: str = Field(..., min_length=1)
     quantity: int = Field(..., gt=0)
 
     @validator("size")
@@ -50,6 +52,15 @@ class TrackingUpdate(BaseModel):
 
 # ===== FastAPI App =====
 app = FastAPI(title="ลงทะเบียนสั่งซื้อเสื้อ (หลาย Size)")
+
+# ===== CORS =====
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 1. ลงทะเบียนสั่งซื้อ
 @app.post("/register")

@@ -130,7 +130,7 @@ async def get_all():
 @app.get("/search-by-name")
 async def search_by_name(name: str):
     # ใช้ regex เพื่อค้นหา case-insensitive
-    customers = list(collection.find({"full_name": {"$regex": name, "$options": "i"}}))
+    customers = list(collection.find({"fullName": {"$regex": name, "$options": "i"}}))
     if not customers:
         raise HTTPException(404, "ไม่พบชื่อที่ค้นหา")
     

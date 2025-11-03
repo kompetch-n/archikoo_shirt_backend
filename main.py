@@ -1,10 +1,12 @@
 # main.py
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, validator
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from pymongo import MongoClient
 import uvicorn
+import random
+import string
 
 # ===== MongoDB Atlas Connection =====
 MONGO_URI = "mongodb+srv://kompetchn:1234@cluster0.3fttexy.mongodb.net/?retryWrites=true&w=majority"
@@ -14,6 +16,12 @@ collection = db["customers"]
 
 collection.create_index("orderId", unique=True)
 collection.create_index("tracking_number")
+
+# ===== ฟังก์ชันช่วยสร้าง Order ID =====
+def generate_order_id():
+    prefix = "ORD"
+    random_part = ''.join(random.choices(string.digits, k=6))
+    return f"{prefix}{random_part}"
 
 # ===== Pydantic Models =====
 class ShirtItem(BaseModel):
@@ -25,11 +33,11 @@ class ShirtItem(BaseModel):
         return v.upper()
 
 class CustomerIn(BaseModel):
-    order_id: str = Field(..., alias="orderId")
-    full_name: str = Field(..., alias="fullName")  # แก้ตรงนี้
+    full_name: str = Field(..., alias="fullName")
     phone: str
     address: str
     items: List[ShirtItem]
+    tracking_number: Optional[str] = None  # 🆕 เลขพัสดุ
 
     @validator("items")
     def at_least_one_item(cls, v):
@@ -43,14 +51,19 @@ class TrackingUpdate(BaseModel):
 # ===== FastAPI App =====
 app = FastAPI(title="ลงทะเบียนสั่งซื้อเสื้อ (หลาย Size)")
 
+# 1. ลงทะเบียนสั่งซื้อ
 @app.post("/register")
 async def register(customer: CustomerIn):
     data = customer.dict(by_alias=True)
-    data["order_date"] = datetime.utcnow()
-    data["status"] = "pending"
 
-    if collection.find_one({"orderId": data["orderId"]}):
-        raise HTTPException(400, "Order ID นี้มีอยู่แล้ว")
+    # 🆕 สร้าง Order ID อัตโนมัติ
+    order_id = generate_order_id()
+    while collection.find_one({"orderId": order_id}):
+        order_id = generate_order_id()  # กันซ้ำ
+
+    data["orderId"] = order_id
+    data["order_date"] = datetime.utcnow()
+    data["status"] = "pending" if not data.get("tracking_number") else "shipped"
 
     result = collection.insert_one(data)
     created = collection.find_one({"_id": result.inserted_id})

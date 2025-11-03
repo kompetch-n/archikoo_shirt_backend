@@ -126,6 +126,20 @@ async def get_all():
         c.pop("_id", None)
     return customers
 
+# 6. ค้นหา Order(s) ด้วยชื่อ
+@app.get("/search-by-name")
+async def search_by_name(name: str):
+    # ใช้ regex เพื่อค้นหา case-insensitive
+    customers = list(collection.find({"full_name": {"$regex": name, "$options": "i"}}))
+    if not customers:
+        raise HTTPException(404, "ไม่พบชื่อที่ค้นหา")
+    
+    for c in customers:
+        c["id"] = str(c["_id"])
+        c.pop("_id", None)
+    return customers
+
+
 # ===== รันเซิร์ฟเวอร์ =====
 # if __name__ == "__main__":
 #     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
